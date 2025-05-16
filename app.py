@@ -6,7 +6,6 @@ from langchain_community.utilities import GoogleSerperAPIWrapper
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.agents import initialize_agent, Tool, AgentType
 
-# Initialize the LLM (Gemini) with higher output token limit for comprehensive answers
 llm = ChatGoogleGenerativeAI(
     model="gemini-2.0-flash",
     temperature=0,
@@ -33,7 +32,7 @@ agent = initialize_agent(
 
 # -- STREAMLIT APP UI --
 st.set_page_config(page_title="Gemnini Search Chatbot", page_icon="🤖")
-st.title("GenAI Streamlit Chatbot")
+st.title("Gemnini+SERP Test Chatbot")
 
 # Initialize chat history
 if "history" not in st.session_state:
@@ -81,5 +80,3 @@ for chat in st.session_state.history:
             # Render full text otherwise
             st.chat_message("assistant").markdown(message)
 
-# Footer attribution
-st.caption("Powered by Google Gemini & Serper API | Built with Streamlit")
