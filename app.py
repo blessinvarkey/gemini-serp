@@ -22,7 +22,8 @@ tools = [
     )
 ]
 
-# Build the agent with parsing error handling enabled\agent = initialize_agent(
+# Build the agent with parsing error handling enabled
+agent = initialize_agent(
     tools,
     llm,
     agent=AgentType.SELF_ASK_WITH_SEARCH,
@@ -31,7 +32,7 @@ tools = [
 )
 
 # -- STREAMLIT APP UI --
-st.set_page_config(page_title="Gemini + Search Chatbot", page_icon="🤖")
+st.set_page_config(page_title="Gemnini Search Chatbot", page_icon="🤖")
 st.title("GenAI Streamlit Chatbot")
 
 # Initialize chat history
@@ -80,3 +81,5 @@ for chat in st.session_state.history:
             # Render full text otherwise
             st.chat_message("assistant").markdown(message)
 
+# Footer attribution
+st.caption("Powered by Google Gemini & Serper API | Built with Streamlit")
