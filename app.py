@@ -32,7 +32,7 @@ agent = initialize_agent(
 
 # -- STREAMLIT APP UI --
 st.set_page_config(page_title="Agent + Gemnini + Search Chatbot", page_icon="🤖")
-st.title("Gemnini+SERP Test Chatbot")
+st.title("LangChain+Gemini+SERP Test Chatbot")
 
 # Initialize chat history
 if "history" not in st.session_state:
