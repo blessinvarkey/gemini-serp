@@ -31,7 +31,7 @@ agent = initialize_agent(
 
 # -- STREAMLIT APP UI --
 st.set_page_config(page_title="GenAI Streamlit Chatbot", page_icon="🤖")
-st.title("GenAI Streamlit Chatbot")
+st.title("Gemini + SERP Test Chatbot")
 
 # Initialize chat history
 if "history" not in st.session_state:
@@ -52,7 +52,7 @@ def handle_submit():
     st.session_state.user_input = ""
 
 # Input box
-st.text_input("You:", key="user_input", on_change=handle_submit)
+st.text_input("Enter your query here:", key="user_input", on_change=handle_submit)
 
 # Display chat
 for chat in st.session_state.history:
