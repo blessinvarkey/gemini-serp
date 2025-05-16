@@ -1,6 +1,7 @@
 import streamlit as st
 import os
 import json
+import ast
 from langchain_community.utilities import GoogleSerperAPIWrapper
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.agents import initialize_agent, Tool, AgentType
@@ -58,12 +59,26 @@ for chat in st.session_state.history:
     if chat["role"] == "user":
         st.chat_message("user").write(chat["message"])
     else:
-        # If the response is valid JSON, show structured JSON; otherwise render markdown
-        try:
-            parsed = json.loads(chat["message"])
-            st.chat_message("assistant").json(parsed)
-        except Exception:
-            st.chat_message("assistant").markdown(chat["message"])
+        text = chat["message"]
+        # Try parsing as JSON first
+        parsed = None
+        if text.strip().startswith("{"):
+            try:
+                parsed = json.loads(text)
+            except json.JSONDecodeError:
+                try:
+                    parsed = ast.literal_eval(text)
+                except Exception:
+                    parsed = None
+        if isinstance(parsed, dict) and 'input' in parsed and 'output' in parsed:
+            # Nicely format the input/output dict
+            st.chat_message("assistant").markdown(
+                f"**You asked:** {parsed['input']}  \n"
+                f"**Bot responded:** {parsed['output']}"
+            )
+        else:
+            # Fallback: render as markdown
+            st.chat_message("assistant").markdown(text)
 
 # Footer
-st.caption("Google Gemini + Search")
+st.caption("B.V.")
