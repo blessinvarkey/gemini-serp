@@ -6,10 +6,11 @@ from langchain_community.utilities import GoogleSerperAPIWrapper
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.agents import initialize_agent, Tool, AgentType
 
-# Initialize the LLM (Gemini)
+# Initialize the LLM (Gemini) with increased output token limit to avoid truncation
 llm = ChatGoogleGenerativeAI(
     model="gemini-2.0-flash",
-    temperature=0
+    temperature=0,
+    max_output_tokens=8192  
 )
 
 # Initialize the Serper search tool
@@ -31,7 +32,7 @@ agent = initialize_agent(
 
 # -- STREAMLIT APP UI --
 st.set_page_config(page_title="GenAI Streamlit Chatbot", page_icon="🤖")
-st.title("Gemini + SERP Test Chatbot")
+st.title("GenAI Streamlit Chatbot")
 
 # Initialize chat history
 if "history" not in st.session_state:
@@ -45,14 +46,15 @@ def handle_submit():
     st.session_state.history.append({"role": "user", "message": msg})
     with st.spinner("Thinking..."):
         try:
-            response = agent.invoke(msg)
+            # Pass through max_tokens to ensure full answer
+            response = agent.invoke(msg, stop=None)
         except Exception as e:
             response = f"Error: {e}"
     st.session_state.history.append({"role": "assistant", "message": response})
     st.session_state.user_input = ""
 
 # Input box
-st.text_input("Enter your query here:", key="user_input", on_change=handle_submit)
+st.text_input("You:", key="user_input", on_change=handle_submit)
 
 # Display chat
 for chat in st.session_state.history:
@@ -79,5 +81,3 @@ for chat in st.session_state.history:
             # Fallback: render full text as markdown
             st.chat_message("assistant").markdown(text)
 
-# Footer
-#st.caption("Powered by Google Gemini & Serper API | Built with Streamlit")
