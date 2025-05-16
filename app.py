@@ -56,10 +56,12 @@ st.text_input("You:", key="user_input", on_change=handle_submit)
 
 # Display chat
 for chat in st.session_state.history:
-    if chat["role"] == "user":
-        st.chat_message("user").write(chat["message"])
+    if chat.get("role") == "user":
+        message = str(chat.get("message", ""))
+        st.chat_message("user").write(message)
     else:
-        text = chat["message"]
+        raw = chat.get("message", "")
+        text = str(raw)
         # Try parsing as JSON first
         parsed = None
         if text.strip().startswith("{"):
