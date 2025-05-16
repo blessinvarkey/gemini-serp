@@ -1,6 +1,7 @@
 import streamlit as st
 import os
-from langchain.utilities import GoogleSerperAPIWrapper
+import json
+from langchain_community.utilities import GoogleSerperAPIWrapper
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.agents import initialize_agent, Tool, AgentType
 
@@ -31,37 +32,38 @@ agent = initialize_agent(
 st.set_page_config(page_title="GenAI Streamlit Chatbot", page_icon="🤖")
 st.title("GenAI Streamlit Chatbot")
 
-# Initialize chat history in session state
+# Initialize chat history
 if "history" not in st.session_state:
     st.session_state.history = []
 
-# User input form
+# Handle user submissions
 def handle_submit():
-    user_msg = st.session_state.user_input.strip()
-    if not user_msg:
+    msg = st.session_state.user_input.strip()
+    if not msg:
         return
-    # Append user message
-    st.session_state.history.append({"role": "user", "message": user_msg})
-    # Get response
+    st.session_state.history.append({"role": "user", "message": msg})
     with st.spinner("Thinking..."):
         try:
-            bot_response = agent.invoke(user_msg)
+            response = agent.invoke(msg)
         except Exception as e:
-            bot_response = f"Error: {e}"
-    # Append assistant message
-    st.session_state.history.append({"role": "assistant", "message": bot_response})
-    # Clear input
+            response = f"Error: {e}"
+    st.session_state.history.append({"role": "assistant", "message": response})
     st.session_state.user_input = ""
 
+# Input box
 st.text_input("You:", key="user_input", on_change=handle_submit)
 
-# Display the chat history
+# Display chat
 for chat in st.session_state.history:
     if chat["role"] == "user":
         st.chat_message("user").write(chat["message"])
     else:
-        st.chat_message("assistant").write(chat["message"])
+        # If the response is valid JSON, show structured JSON; otherwise render markdown
+        try:
+            parsed = json.loads(chat["message"])
+            st.chat_message("assistant").json(parsed)
+        except Exception:
+            st.chat_message("assistant").markdown(chat["message"])
 
 # Footer
-st.markdown("---")
-st.caption("Gemini + Search ChatBot")
+st.caption("Google Gemini + Search")
