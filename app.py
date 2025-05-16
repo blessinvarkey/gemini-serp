@@ -6,7 +6,7 @@ from langchain_community.utilities import GoogleSerperAPIWrapper
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.agents import initialize_agent, Tool, AgentType
 
-# Initialize the LLM (Gemini) with increased output token limit to avoid truncation
+# Initialize the LLM (Gemini) with higher output token limit for more comprehensive answers
 llm = ChatGoogleGenerativeAI(
     model="gemini-2.0-flash",
     temperature=0,
@@ -31,7 +31,7 @@ agent = initialize_agent(
 )
 
 # -- STREAMLIT APP UI --
-st.set_page_config(page_title="GenAI Streamlit Chatbot", page_icon="🤖")
+st.set_page_config(page_title="Gemini + SERP Chatbot", page_icon="🤖")
 st.title("GenAI Streamlit Chatbot")
 
 # Initialize chat history
@@ -46,8 +46,8 @@ def handle_submit():
     st.session_state.history.append({"role": "user", "message": msg})
     with st.spinner("Thinking..."):
         try:
-            # Pass through max_tokens to ensure full answer
-            response = agent.invoke(msg, stop=None)
+            # Ensure the model returns up to the new max token limit
+            response = agent.invoke(msg)
         except Exception as e:
             response = f"Error: {e}"
     st.session_state.history.append({"role": "assistant", "message": response})
@@ -80,4 +80,5 @@ for chat in st.session_state.history:
         else:
             # Fallback: render full text as markdown
             st.chat_message("assistant").markdown(text)
+
 
