@@ -56,13 +56,13 @@ st.text_input("You:", key="user_input", on_change=handle_submit)
 
 # Display chat
 for chat in st.session_state.history:
-    if chat.get("role") == "user":
-        message = str(chat.get("message", ""))
+    role = chat.get("role")
+    message = str(chat.get("message", ""))
+    if role == "user":
         st.chat_message("user").write(message)
     else:
-        raw = chat.get("message", "")
-        text = str(raw)
-        # Try parsing as JSON first
+        text = message
+        # Try parsing as JSON-like dict first
         parsed = None
         if text.strip().startswith("{"):
             try:
@@ -72,15 +72,12 @@ for chat in st.session_state.history:
                     parsed = ast.literal_eval(text)
                 except Exception:
                     parsed = None
-        if isinstance(parsed, dict) and 'input' in parsed and 'output' in parsed:
-            # Nicely format the input/output dict
-            st.chat_message("assistant").markdown(
-                f"**You asked:** {parsed['input']}  \n"
-                f"**Bot responded:** {parsed['output']}"
-            )
+        if isinstance(parsed, dict) and 'output' in parsed:
+            # Only display the output field
+            st.chat_message("assistant").markdown(parsed['output'])
         else:
-            # Fallback: render as markdown
+            # Fallback: render full text as markdown
             st.chat_message("assistant").markdown(text)
 
 # Footer
-st.caption("B.V.")
+#st.caption("Powered by Google Gemini & Serper API | Built with Streamlit")
