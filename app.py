@@ -6,11 +6,11 @@ from langchain_community.utilities import GoogleSerperAPIWrapper
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.agents import initialize_agent, Tool, AgentType
 
-# Initialize the LLM (Gemini) with higher output token limit for more comprehensive answers
+# Initialize the LLM (Gemini) with higher output token limit for comprehensive answers
 llm = ChatGoogleGenerativeAI(
     model="gemini-2.0-flash",
     temperature=0,
-    max_output_tokens=8192  
+    max_output_tokens=8192  # ensure long outputs
 )
 
 # Initialize the Serper search tool
@@ -22,16 +22,16 @@ tools = [
     )
 ]
 
-# Build the agent
-agent = initialize_agent(
+# Build the agent with parsing error handling enabled\agent = initialize_agent(
     tools,
     llm,
     agent=AgentType.SELF_ASK_WITH_SEARCH,
+    handle_parsing_errors=True,  # retry on output parsing failures
     verbose=False
 )
 
 # -- STREAMLIT APP UI --
-st.set_page_config(page_title="Gemini + SERP Chatbot", page_icon="🤖")
+st.set_page_config(page_title="Gemini + Search Chatbot", page_icon="🤖")
 st.title("GenAI Streamlit Chatbot")
 
 # Initialize chat history
@@ -46,7 +46,7 @@ def handle_submit():
     st.session_state.history.append({"role": "user", "message": msg})
     with st.spinner("Thinking..."):
         try:
-            # Ensure the model returns up to the new max token limit
+            # Agent will automatically retry parsing if needed
             response = agent.invoke(msg)
         except Exception as e:
             response = f"Error: {e}"
@@ -56,29 +56,27 @@ def handle_submit():
 # Input box
 st.text_input("You:", key="user_input", on_change=handle_submit)
 
-# Display chat
+# Display chat history
 for chat in st.session_state.history:
     role = chat.get("role")
     message = str(chat.get("message", ""))
     if role == "user":
         st.chat_message("user").write(message)
     else:
-        text = message
-        # Try parsing as JSON-like dict first
+        # Try parsing structured responses
         parsed = None
-        if text.strip().startswith("{"):
+        if message.strip().startswith("{"):
             try:
-                parsed = json.loads(text)
-            except json.JSONDecodeError:
+                parsed = json.loads(message)
+            except (json.JSONDecodeError, TypeError):
                 try:
-                    parsed = ast.literal_eval(text)
+                    parsed = ast.literal_eval(message)
                 except Exception:
                     parsed = None
         if isinstance(parsed, dict) and 'output' in parsed:
-            # Only display the output field
+            # Display only the 'output' field
             st.chat_message("assistant").markdown(parsed['output'])
         else:
-            # Fallback: render full text as markdown
-            st.chat_message("assistant").markdown(text)
-
+            # Render full text otherwise
+            st.chat_message("assistant").markdown(message)
 
