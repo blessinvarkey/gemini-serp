@@ -1,6 +1,6 @@
 # Groq-SERP Chatbot
 
-A Streamlit-based chatbot that demonstrates a multi-step flow without using LangChain:
+A Streamlit-based chatbot that demonstrates a multi-step flow. Can be tried here: https://groq-serp.streamlit.app:
 
 1. **External Search** via Serper REST API
 2. **LLM Inference** via GROQ's Python client (OpenAI-compatible)
