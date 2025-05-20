@@ -12,7 +12,7 @@ A Streamlit-based chatbot that demonstrates a multi-step flow. Can be tried here
 
 * **Serper Search**: Fetch real-time search results from Serper’s REST API
 * **GROQ LLM**: Use `llama-3.3-70b-versatile` via GROQ’s Chat Completion endpoint
-* **Plain Python**: No LangChain dependency—full control over orchestration
+* **Plain Python**: No agentic framework dependency—full control over orchestration
 * **Streamlit**: Interactive web UI with minimal boilerplate
 
 ## 📦 Requirements
