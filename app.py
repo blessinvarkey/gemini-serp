@@ -1,32 +1,17 @@
-"""
-Streamlit Chatbot with GROQ & Serper Search
-
-This app shows how to implement the same multi-step flow,
-using GROQ's Python library for LLM inference and Serper's REST API for search.
-
-Requirements (in requirements.txt):
-  streamlit
-  requests
-  groq
-
-Set your secrets on Streamlit Cloud (or export env vars):
-  GROQ_API_KEY = "<your-groq-api-key>"
-  SERPER_API_KEY = "<your-serper-key>"
-
-Usage:
-  streamlit run app.py
-"""
-
 import streamlit as st
 import os
 import requests
 import json
-import ast
 
 # -------------
-# Configuration
+# Page config
+# -------------
+st.set_page_config(page_title="Groq-SERP Chatbot", layout="wide")
+st.title("Groq-SERP-llama-3.3-70b Chatbot")
+
 # -------------
 # Load API keys
+# -------------
 GROQ_API_KEY = st.secrets.get("GROQ_API_KEY") or os.getenv("GROQ_API_KEY")
 SERPER_API_KEY = st.secrets.get("SERPER_API_KEY") or os.getenv("SERPER_API_KEY")
 
@@ -40,7 +25,6 @@ else:
 # ----------------
 # Helper functions
 # ----------------
-
 def serp_search(query: str) -> dict:
     """Call Serper REST API and return JSON results."""
     url = "https://google.serper.dev/search"
@@ -50,12 +34,10 @@ def serp_search(query: str) -> dict:
     resp.raise_for_status()
     return resp.json()
 
-
 def call_llm(prompt: str, max_tokens: int = 4096) -> str:
     """Route prompt to GROQ LLM; raise error if client missing."""
     if not groq_client:
         return "Error: GROQ_API_KEY not provided."
-    # Perform chat completion via GROQ's OpenAI-compatible endpoint
     response = groq_client.chat.completions.create(
         model="llama-3.3-70b-versatile",
         messages=[{"role": "user", "content": prompt}],
@@ -63,47 +45,63 @@ def call_llm(prompt: str, max_tokens: int = 4096) -> str:
     )
     return response.choices[0].message.content
 
-# -------------
-# Streamlit UI
-# -------------
+# -------------------------
+# Initialize chat history
+# -------------------------
+if "history" not in st.session_state:
+    st.session_state.history = []  # list of {"role":..., "content":...}
 
-st.set_page_config(page_title="Groq-SERP Chatbot")
-st.title("Groq-SERP-llama-3.3-70b Chatbot")
+# -------------------------------------------------
+# Callback: run when user presses Enter in textbox
+# -------------------------------------------------
+def on_enter():
+    user_msg = st.session_state.user_input.strip()
+    if not user_msg:
+        return
 
-# Session state to store only the latest interaction
-if "last_user" not in st.session_state:
-    st.session_state["last_user"] = ""
-if "last_response" not in st.session_state:
-    st.session_state["last_response"] = ""
+    # 1. Append user turn
+    st.session_state.history.append({"role": "user", "content": user_msg})
 
-# User input
-user_input = st.text_input("You:", value="", key="input")
-if st.button("Send") and user_input:
-    # 1. External search
+    # 2. External SERP search
     with st.spinner("Searching external data..."):
-        search_results = serp_search(user_input)
-    # 2. Build combined prompt
-    search_json = json.dumps(search_results)
+        search_results = serp_search(user_msg)
+
+    # 3. Build prompt for LLM
     prompt = (
         "You are a helpful assistant. Use the following search results to answer the question.\n"
-        f"Search results (JSON): {search_json}\n\n"
-        f"Question: {user_input}\n\n"
+        f"Search results (JSON): {json.dumps(search_results)}\n\n"
+        f"Question: {user_msg}\n\n"
         "Please provide a clear, accurate, and fully scoped answer."
     )
-    # 3. Call GROQ LLM
+
+    # 4. Call GROQ LLM
     with st.spinner("Generating answer..."):
         try:
             answer = call_llm(prompt)
         except Exception as e:
             answer = f"Error from GROQ: {e}"
-    # 4. Store results
-    st.session_state["last_user"] = user_input
-    st.session_state["last_response"] = answer
 
-# Display only the latest query and answer
-if st.session_state["last_user"]:
-    st.subheader("You asked:")
-    st.write(st.session_state["last_user"])
-    st.subheader("Answer:")
-    st.write(st.session_state["last_response"])
+    # 5. Append assistant turn
+    st.session_state.history.append({"role": "assistant", "content": answer})
 
+    # 6. Clear input box
+    st.session_state.user_input = ""
+
+# --------------------------
+# User input box (Enter-to-send)
+# --------------------------
+st.text_input(
+    label="You:",
+    key="user_input",
+    on_change=on_enter,
+    placeholder="Type your message and press Enter…"
+)
+
+# --------------------------
+# Render the chat history
+# --------------------------
+for msg in st.session_state.history:
+    if msg["role"] == "user":
+        st.markdown(f"**You:** {msg['content']}")
+    else:
+        st.markdown(f"**Assistant:** {msg['content']}")
