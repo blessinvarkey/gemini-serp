@@ -68,7 +68,7 @@ def call_llm(prompt: str, max_tokens: int = 4096) -> str:
 # -------------
 
 st.set_page_config(page_title="Groq-SERP Chatbot")
-st.title("Groq-SERP Chatbot")
+st.title("Groq-SERP-llama-3.3-70b Chatbot")
 
 # Session state to store only the latest interaction
 if "last_user" not in st.session_state:
