@@ -7,7 +7,7 @@ import json
 # Page config
 # -------------
 st.set_page_config(page_title="Groq-SERP Chatbot", layout="wide")
-st.title("Groq-SERP-llama-3.3-70b Chatbot")
+st.title("Groq-llama-3.3-70b Chatbot")
 
 # -------------
 # Load API keys
