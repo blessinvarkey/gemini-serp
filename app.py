@@ -67,7 +67,7 @@ def call_llm(prompt: str, max_tokens: int = 4096) -> str:
 # Streamlit UI
 # -------------
 
-st.set_page_config(page_title="Test Chatbot")
+st.set_page_config(page_title="Groq-SERP Test Chatbot")
 st.title("Test Chatbot")
 
 # Session state to store only the latest interaction
