@@ -77,5 +77,5 @@ SERPER_API_KEY = "<your-serper-key>"
 1. Push this repo to GitHub.
 2. In Streamlit Cloud, create a new app pointing to this repo and the `app.py` file.
 3. Add **GROQ\_API\_KEY** and **SERPER\_API\_KEY** to the app’s **Secrets**.
-4. Deploy and share your live chatbot URL!
+4. Deploy 
 
