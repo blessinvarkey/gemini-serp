@@ -1,17 +1,41 @@
+"""
+Streamlit Chatbot with GROQ & Serper Search
+
+This app shows how to implement the same multi-step flow,
+using GROQ's Python library for LLM inference and Serper's REST API for search.
+
+Requirements (in requirements.txt):
+  streamlit
+  requests
+  groq
+
+Set your secrets on Streamlit Cloud (or export env vars):
+  GROQ_API_KEY = "<your-groq-api-key>"
+  SERPER_API_KEY = "<your-serper-key>"
+
+Usage:
+  streamlit run app.py
+"""
+
 import streamlit as st
 import os
 import requests
 import json
-import google.generativeai as genai
+import ast
 
 # -------------
 # Configuration
 # -------------
-# Use Streamlit secrets or environment variables
-GOOGLE_API_KEY = st.secrets.get("GOOGLE_API_KEY") or os.getenv("GOOGLE_API_KEY")
+# Load API keys
+GROQ_API_KEY = st.secrets.get("GROQ_API_KEY") or os.getenv("GROQ_API_KEY")
 SERPER_API_KEY = st.secrets.get("SERPER_API_KEY") or os.getenv("SERPER_API_KEY")
 
-genai.configure(api_key=GOOGLE_API_KEY)
+# Initialize GROQ client if key is available
+if GROQ_API_KEY:
+    from groq import Groq
+    groq_client = Groq(api_key=GROQ_API_KEY)
+else:
+    groq_client = None
 
 # ----------------
 # Helper functions
@@ -27,24 +51,24 @@ def serp_search(query: str) -> dict:
     return resp.json()
 
 
-def call_gemini(prompt: str, max_tokens: int = 8192) -> str:
-    """Send a prompt to Google Gemini and return the response content."""
-    response = genai.chat.completions.create(
-        model="gemini-2.0-flash",
-        prompt=prompt,
-        temperature=0,
-        candidate_count=1,
-        max_output_tokens=max_tokens
+def call_llm(prompt: str, max_tokens: int = 4096) -> str:
+    """Route prompt to GROQ LLM; raise error if client missing."""
+    if not groq_client:
+        return "Error: GROQ_API_KEY not provided."
+    # Perform chat completion via GROQ's OpenAI-compatible endpoint
+    response = groq_client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[{"role": "user", "content": prompt}],
+        max_tokens=max_tokens
     )
-    # Access the message text
     return response.choices[0].message.content
 
 # -------------
 # Streamlit UI
 # -------------
 
-st.set_page_config(page_title="GenAI Plain Python Chatbot", page_icon="🤖")
-st.title("GenAI Plain Python Chatbot")
+st.set_page_config(page_title="Test Chatbot")
+st.title("Test Chatbot")
 
 # Session state to store only the latest interaction
 if "last_user" not in st.session_state:
@@ -66,12 +90,12 @@ if st.button("Send") and user_input:
         f"Question: {user_input}\n\n"
         "Please provide a clear, accurate, and fully scoped answer."
     )
-    # 3. Call Gemini
+    # 3. Call GROQ LLM
     with st.spinner("Generating answer..."):
         try:
-            answer = call_gemini(prompt)
+            answer = call_llm(prompt)
         except Exception as e:
-            answer = f"Error from Gemini: {e}"
+            answer = f"Error from GROQ: {e}"
     # 4. Store results
     st.session_state["last_user"] = user_input
     st.session_state["last_response"] = answer
@@ -83,4 +107,3 @@ if st.session_state["last_user"]:
     st.subheader("Answer:")
     st.write(st.session_state["last_response"])
 
-st.caption("Powered by Google Gemini & Serper Search | Plain Python implementation")
