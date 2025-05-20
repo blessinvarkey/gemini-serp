@@ -7,7 +7,7 @@ import json
 # Page config
 # -------------
 st.set_page_config(page_title="Groq-SERP Chatbot", layout="wide")
-st.title("Groq-llama-3.3-70b Chatbot")
+st.title("Groq-SERP-llama-3.3-70b Chatbot with PII Masking Demo")
 
 # -------------
 # Load API keys
@@ -42,11 +42,30 @@ def call_llm(prompt: str, max_tokens: int = 4096) -> str:
     )
     return response.choices[0].message.content
 
+# --------------------------------
+# PII-masking / unmasking helpers
+# --------------------------------
+def mask_pii(text: str) -> tuple[str, dict]:
+    mask_prompt = (
+        "Identify and mask any PII in the following text. "
+        "Replace them with placeholders like <NAME_1>, <EMAIL_1>, <PHONE_1>, etc.\n\n"
+        f"Text:\n'''{text}'''\n\n"
+        "Return **only** a JSON string with keys `masked_text` and `mapping`."
+    )
+    raw = call_llm(mask_prompt)
+    data = json.loads(raw)
+    return data["masked_text"], data["mapping"]
+
+def unmask_pii(text: str, mapping: dict) -> str:
+    for placeholder, original in mapping.items():
+        text = text.replace(placeholder, original)
+    return text
+
 # -------------------------
-# Initialize chat history
+# Initialize session state
 # -------------------------
 if "history" not in st.session_state:
-    st.session_state.history = []  # will hold only assistant responses
+    st.session_state.history = []  # list of dicts with keys: masked_query, pii_map, masked_answer, final_answer
 
 # -------------------------------------------------
 # Callback: run when user presses Enter in textbox
@@ -56,29 +75,40 @@ def on_enter():
     if not user_msg:
         return
 
-    # 1. External SERP search
-    with st.spinner("Searching external data..."):
-        search_results = serp_search(user_msg)
+    # 1. Mask user PII
+    masked_query, pii_map = mask_pii(user_msg)
 
-    # 2. Build prompt
-    prompt = (
+    # 2. Search on masked query
+    with st.spinner("Searching external data…"):
+        search_results = serp_search(masked_query)
+
+    # 3. Build prompt with masked_query
+    llm_prompt = (
         "You are a helpful assistant. Use the following search results to answer the question.\n"
         f"Search results (JSON): {json.dumps(search_results)}\n\n"
-        f"Question: {user_msg}\n\n"
+        f"Question: {masked_query}\n\n"
         "Please provide a clear, accurate, and fully scoped answer."
     )
 
-    # 3. Call GROQ LLM
-    with st.spinner("Generating answer..."):
+    # 4. Get masked answer
+    with st.spinner("Generating answer…"):
         try:
-            answer = call_llm(prompt)
+            masked_answer = call_llm(llm_prompt)
         except Exception as e:
-            answer = f"Error from GROQ: {e}"
+            masked_answer = f"Error from GROQ: {e}"
 
-    # 4. Store only the assistant's reply
-    st.session_state.history.append(answer)
+    # 5. Unmask the answer
+    final_answer = unmask_pii(masked_answer, pii_map)
 
-    # 5. Clear input box
+    # 6. Save this turn in history
+    st.session_state.history.append({
+        "masked_query": masked_query,
+        "pii_map": pii_map,
+        "masked_answer": masked_answer,
+        "final_answer": final_answer
+    })
+
+    # 7. Clear input
     st.session_state.user_input = ""
 
 # --------------------------
@@ -92,7 +122,18 @@ st.text_input(
 )
 
 # --------------------------
-# Render only assistant replies
+# Render history with mapping
 # --------------------------
-for reply in st.session_state.history:
-    st.markdown(reply)
+for turn in st.session_state.history:
+    st.markdown("---")
+    st.subheader("🔒 Masked Query")
+    st.write(turn["masked_query"])
+
+    st.subheader("🗺️ PII Mapping")
+    st.json(turn["pii_map"])
+
+    st.subheader("🤖 Masked Answer")
+    st.write(turn["masked_answer"])
+
+    st.subheader("✅ Final Unmasked Answer")
+    st.write(turn["final_answer"])
